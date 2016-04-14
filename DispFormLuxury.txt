@@ -36,7 +36,7 @@
 <script type="text/javascript" src="/sites/it/jqueryLibrary/myLib.js"></script>	
 
 <script type="text/javascript">
-function getIDUser(user){
+function getIDUser(){
 	var managerID = [];
 	$().SPServices({
 	  operation: "GetUserProfileByName",

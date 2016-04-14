@@ -1,0 +1,1024 @@
+<style>
+.row-column{
+	background-color:#82b1bd;
+	border-bottom:1px solid #6a9572;
+	border-top:1px solid #6a9572;
+	text-align:center;
+	font-weight:bolder;
+}	
+.jtable-row-even{
+	border-bottom:1px solid #999999;
+	background-color:#e6f3f6;
+}
+#linkAddDeployment{
+	font-weight:bolder;
+	color : #3399FF;	
+}
+#linkAdd{
+	height:40px;
+}
+#listdeployment{
+	height:40px;
+	padding:7px;
+}
+.NoteFlow{
+	font-weight:normal;
+	color:#3399FF;
+}
+
+</style>
+<link rel="stylesheet" type="text/css" href="/sites/it/SiteAssets/css/easyui.css">
+<link rel="stylesheet" type="text/css" href="/sites/it/SiteAssets/css/icon.css">
+<link rel="stylesheet" type="text/css" href="/sites/it/SiteAssets/css/table_view.css">
+<script type="text/javascript" src="/sites/it/SiteAssets/js/jquery-1.6.1.min.js"></script>
+<script type="text/javascript" src="/sites/it/SiteAssets/js/jquery.SPServices-2014.01.min.js"></script>	
+<script type="text/javascript" src="/sites/it/SiteAssets/js/jquery.easyui.min.js"></script>	
+<script type="text/javascript" src="/sites/it/jqueryLibrary/myLib.js"></script>	
+
+<script type="text/javascript">
+function getIDUser(user){
+	var managerID = [];
+	$().SPServices({
+	  operation: "GetUserProfileByName",
+	  async: false,
+	  AccountName: $().SPServices.SPGetCurrentUser(),
+	  completefunc: function (xData, Status) {
+	    firstName = getUPValue(xData.responseXML, "FirstName");
+	    office = getUPValue(xData.responseXML, "Manager");
+	   }
+	});
+	return managerID[0];
+}  
+
+function getUPValue(x, p) {
+  var thisValue = $(x).SPFilterNode("PropertyData").filter(function() {
+    return $(this).find("Name").text() == p;
+  }).find("Values").text();
+  
+  return thisValue;
+}
+function getManager(){
+	 var manager = [];
+	 var managerName;
+	  $().SPServices({
+	    operation: "GetUserProfileByName",
+	    async: false,
+	    AccountName: $().SPServices.SPGetCurrentUser(),
+	    completefunc: function (xData, Status) {
+	      $(xData.responseXML).find("PropertyData > Name:contains('Manager')").each(function() {
+	        managerName = $(this).parent().find("Values").text();
+	        manager.push(managerName);
+	      });
+	    }
+	  });
+	
+	  // There's no easy way to find one of these columns; we'll look for the comment with the columnName
+	  var searchText = RegExp("FieldName=\"Manager\"", "gi");
+	  // Loop through all of the ms-formbody table cells
+	  $("td.ms-formbody").each(function() {
+	    // Check for the right comment
+	    if(searchText.test($(this).html())) {
+	      $(this).find("div[Title='People Picker']").html(managerName);
+	      return false;
+	    }
+	  });
+	//getIDUser(manager[0]);
+	return manager[0];
+}
+
+
+
+$(document).ready(function() {
+		//get changerequestnumber
+		var CRN = $("#ChangeRequestNo").text();
+		var id = getQueryString()["ID"];
+		
+		//getlink approvalhistory
+		var idWorklowStatus = $("#approvallinkText").text();
+		var approvedStatus = $("#approvedStatus").text();  //get the Approved
+		var	finisStatus = $("#finishDevelopment").text();  //get the isGroupApproved 
+		var	isreceived = $("#isreceived").text();  //get the isGroupApproved 
+		var	isDone = $("#isdone").text();  //get the isDone 
+		var	isreviewfinished = $("#isreviewfinished").text(); //get the review finished
+		var	islistdepcomp = $("#isListDepCompText").text();  //get the completed list deployment 
+		var	isstartApprovalText = $("#isstartApprovalText").text();  //get isstartApprovalText 
+		var	escalationStatusText = $("#escalationStatusText").text();  //get isstartApprovalText 
+		var	solutionTypeText = $("#solutionTypeText").text();  //get isstartApprovalText 
+		var assignToText 	= $("#AssignToText").text();
+		var isApprovedGroupText	= $("#isApprovedGroupText").text();
+		var isrollbackText	= $("#isrollbackText").text();
+		
+		$("#linkAddDeployment").attr("onclick", "openBasicDialog('/sites/it/Lists/Deployments/CustomNewForm.aspx?CRN="+CRN+"&identity="+id+"','Add Deployment ')");
+		//$("#handletask").attr("onClick", "openBasicDialog('/sites/it/Lists/Change%20Request/EditManager.aspx?ID="+id+"','Handle Task : Set Manager')");
+		$("#linkHistory").attr("onClick", "openBasicDialog('"+idWorklowStatus+"','History Link')");		
+		$("#rollback").attr("onClick", "openBasicDialog('/sites/it/Lists/Change Request/revision.aspx?ID="+id+"','Revisi')");		
+		$("#GroupSolutionbutton").attr("onClick", "openBasicDialog('/sites/it/Lists/Change Request/EditSolutionGroup.aspx?ID="+id+"','Set Group Solution')");		
+		$("#solutionEditLink").attr("onClick", "openBasicDialog('/sites/it/Lists/Change%20Request/EditSolution.aspx?ID="+id+"','Edit Solution Form')");
+		
+		
+		//convert receive date format to ddMMyyy
+		var receivedate  = dateYYYYMMDD($("#receiveDateText").text());
+		$("#receiveDateText").text(receivedate);
+		
+		//get status 
+		var status = $("#status").text();
+		
+		//get logedInUser
+		var logedInUser = $().SPServices.SPGetCurrentUser({
+		    fieldName: "Title",
+		    debug: false
+		});
+			
+		//get logedInUser
+		var logedInUserManager = $().SPServices.SPGetCurrentUser({
+		    fieldName: "Office",
+		    debug: false
+		});
+		//alert(logedInUserManager);
+		
+		//get GroupSolution
+		var groupSolution = $("#GroupSolution").text();
+
+		if (groupSolution.length > 0){
+			$("#handletask").show();
+			$("#handleTaskButton").hide();
+			$("#GroupSolutionbutton").hide();
+			$("#approvalButtonGroup").show();
+		}else {
+			$("#handletask").hide();
+			$("#handleTaskButton").show();
+			$("#GroupSolutionbutton").show();
+			$("#approvalButtonGroup").hide();
+		}
+		
+		if (status == 'Draft'){
+			$("#openTicket").prop('disabled', false);
+			$("#linkApproval").text('');
+		}else{
+			$("#linkApproval").text('Open Workflow Approval Tasks');
+			$("#openTicket").prop('disabled', true);
+		}
+
+		//disable the tab solution, escalation and deployment
+		//if ticket not received yet
+
+		//disable if 
+		//if ticket not received yet
+		if(isstartApprovalText  == "No"){
+			$("#buttonApproval").hide();
+			$("#noteApprovalFlow").text("The approval for this item is not started yet, please go to edit form and check the approvers").addClass("NoteFlow");
+		}else{
+			$("#buttonApproval").show();
+			$("#noteApprovalFlow").hide();
+		}
+		
+		if (islistdepcomp == 'Yes'){
+			$("#finishDeploymentList").prop("disabled", true);
+	    	$(".infraApproval").show();
+		}else{
+			$("#finishDeploymentList").prop("disabled", false);
+	    	$(".infraApproval").hide();
+		}
+		
+		if (approvedStatus == 'No') {
+			$("#receiveGroup").hide();
+			$("#approvalGroupButton").hide();
+			$(".infodetail").show();
+		}else{
+			$("#receiveGroup").show();
+			$("#approvalGroupButton").show();
+			$(".infodetail").hide();
+			$("#approvalButton").attr("disabled", true);
+			
+		}
+		
+		if (groupSolution.length == 0){
+			$("#receiveGroup").removeAttr("onClick").prop("disabled", true);
+			$("#approvalGroupButton").removeAttr("onClick").prop("disabled", true);
+		}else{
+			$("#receiveGroup").removeAttr("onClick").prop("disabled", false);
+			$("#approvalGroupButton").removeAttr("onClick").prop("disabled", false);
+		}
+		
+	    //get user permission
+		var helpdesk 	= 0;
+		var admin 		= 0;
+
+		// hiden/disabled approval button solution group 
+		// condition hide when Approved = No or Finish = Yes
+		/*
+		if ((approvedStatus == 'No') && (finisStatus == 'Yes') ){
+			$("#approvalGroupButton").prop("disabled", true);
+		}else{
+			$("#approvalGroupButton").prop("disabled", false);
+		}	
+		*/
+		//
+		if (isreceived == 'Yes' && status != 'Open'){
+			$("#takeTicket").prop("disabled", true);
+		}else{
+			$("#takeTicket").prop("disabled", false);
+		}
+
+		if (status != 'Open'){
+			$("#takeTicket").prop("disabled", true);
+		}
+
+		//disable the tab if status is open OR not received Yet by IT Support Helpdesk
+		if (status == 'Open' || isreceived == 'No'){
+			$("#Escalation").hide();
+			$("#Deployment").hide();
+			$("#Solution").hide();
+			//$("#setDoneButton").prop("disabled", true);
+			$('#tt').tabs('disableTab', 'Escalation');	
+			$('#tt').tabs('disableTab', 'Deployment');	
+		}
+		
+		if (isreceived == 'Yes' ){
+			//$('#tt').tabs('disableTab', 'Solution');				
+			$('#tt').tabs('disableTab', 'Deployment');
+		}
+		
+		if (finisStatus == 'Yes'){
+			$('#tt').tabs('enableTab', 'Deployment');
+		}
+				
+		//hide and replace Done Button with the Note text (Note : ask to input the solution type and desk first);
+		if (isreviewfinished == 'Yes'  &&  solutionTypeText != ''){
+			$("#setDoneButton").prop("disabled", false);
+			$("#notificationSetDone").hide();
+			$(".viewSetDone").hide();
+		}else{
+			$("#setDoneButton").prop("disabled", true);
+			$("#notificationSetDone").show();
+			$(".viewSetDone").show();
+		}
+	    
+		if (isreviewfinished == 'Yes'){
+			//$("#setDoneButton").prop("disabled", false);
+			//update by ade 23 09 2015 16:06
+			//$("#rollback").show(); 
+			$("#isreviewfinished").prop("disabled", true);
+		}else{
+			//$("#setDoneButton").prop("disabled", true);
+			$("#isreviewfinished").prop("disabled", false);
+			//$("#rollback").hide();
+		}
+	    if (islistdepcomp == 'Yes'){
+			$("#rollback").show();
+	    }else{
+			$("#rollback").hide();
+	    }
+		
+		
+		if (isreviewfinished  == 'Yes'){
+			$("#infraHeadButton").prop("disabled", true);
+		}
+		
+		var author = getCRNumberById(id);
+		var listAdmin = [];
+		var arrHelpdesk = [];
+		var arrAdmin = [];
+		var loggedinUserGroup ="";
+		var listDept = [];
+		
+	    $().SPServices({
+        operation: "GetGroupCollectionFromUser",
+        userLoginName: $().SPServices.SPGetCurrentUser(),
+        async: false,
+        completefunc: function (xData, Status) {
+        	var helpDesk = $(xData.responseXML).find("Group[Name='IT Support Helpdesk']").length;
+        	var admin	 = $(xData.responseXML).find("Group[Name='Administrators']").length;
+        	var member	 = $(xData.responseXML).find("Group[Name='Users']").length;
+        	
+        	//get infra group
+        	var Server 		= $(xData.responseXML).find("Group[Name='Support Server']").length;
+        	var Network 	= $(xData.responseXML).find("Group[Name='Support Network']").length;
+        	var SupportHelpdesk = $(xData.responseXML).find("Group[Name='Support Helpdesk']").length;
+        	var Hardware 	= $(xData.responseXML).find("Group[Name='Support Hardware']").length;
+        	var Database 	= $(xData.responseXML).find("Group[Name='Support Database']").length;
+        	var SupportSH	= $(xData.responseXML).find("Group[Name='IT Infra Support Section Head']").length;
+			var BackEndSH 	= $(xData.responseXML).find("Group[Name='IT Infra BackEnd Section Head']").length;
+
+			
+			if (Network == 1 || SupportHelpdesk == 1 || Hardware == 1 || Database == 1 || SupportSH == 1 || BackEndSH == 1 || Server == 1 && islistdepcomp == 'Yes'){
+				$("#rollback").show();
+			}else{
+				$("#rollback").hide();
+			}
+			
+			$(xData.responseXML).find("Group").each(function()
+			{
+				loggedinUserGroup = $(this).attr("Name");
+				if (assignToText == loggedinUserGroup){
+					listDept.push(loggedinUserGroup);
+				}
+			});        	
+				
+	        //if ((helpDesk == 1) || (admin == 1)) {  ----------------- edit 11/04/2016 
+	        if (helpDesk == 1) {
+	            	$(".helpDeskAutority").show();
+	            	$("#takeTicket").show();
+	            	$("#listdeployment").show();
+	        }else{
+	            	$("#takeTicket").hide();
+	            	$("#listdeployment").hide();
+	            	$(".helpDeskAutority").hide();
+	        }
+	            
+	        if (member == 1){
+					$('#tt').tabs('close', 'Escalation');	
+					$('#tt').tabs('close', 'Deployment');	
+					$('#tt').tabs('disableTab', 'Solution');				
+	            	$("#visibleHelpDesk").hide();
+	            	$(".helpDeskAutority").hide();
+	        }
+	        
+	       // if (status == 'Close' || status == 'Done' && BackEndSH  == 1 && SupportSH == 1)
+
+				arrHelpdesk.push(helpDesk);
+        		listAdmin.push(admin);
+	            
+        	}
+    	});
+		
+		//alert(listAdmin[0]);
+		
+	    if (isDone == 'Yes'){
+	    	$("#setDoneButton").prop("disabled", true);
+	    	$("#rollback").hide();
+	    } 
+
+		//view list and CRUD Deployment 
+		viewDeployment();
+		
+		//event hendler click button Open Ticket
+		$("#openTicket").click(function (){
+			var id = getQueryString()["ID"];
+			var conf = confirm("Are you sure Open this ticket?");
+			if (conf  ==  true){
+				updateStatus("Need Approval", id);
+				alert('Open Ticket successful');
+				$("#openTicket").prop('disabled', true);
+				$("#status").text('Need Approval');
+			}
+		});
+		
+		//receive by helpdesk
+		    $("#takeTicket").click(function(){
+	    	var conf = confirm('Do you want to recive it ?');
+	    	if (conf == true){
+	    		receiveTicket();
+	    		alert('Received succesful');
+	    	}
+	    });
+	    
+		//receive by helpdesk
+		$("#nocompleteEscalation").click(function(){
+			alert("Group solution harus diisi");
+	    });
+	    
+	    //receive ticket by group solution
+	    $("#cantreceiveTask").click(function(){
+	    	alert("Group solution harus diisi.");
+	    });
+	    
+    
+		var isTakenText = $("#isTakenText").text();
+		
+		var picChangeText = $("#isPICChangeText").text();
+		if(picChangeText == 'Yes'){
+			if (isTakenText == 'Yes'){
+				$("#handleTaskButton").hide();
+				$("#approvalButtonGroup").show();
+			}else{
+				$("#handleTaskButton").show();
+				$("#approvalButtonGroup").hide();
+			}
+		}else if ( isreviewfinished == 'No'){
+			$("#linkAdd").hide();
+			$("<div style='margin:2px 2px 2px 0;font-weight:bolder'>You need to Handle task first before add item on deployment list</div>").insertAfter("#linkAdd");
+		}
+		
+		if ( isreviewfinished == 'Yes'){
+			$("#linkAdd").hide();
+		}
+		
+		var isreviewfinished = $("#isreviewfinished").text();
+
+		if (picChangeText == 'No'){
+			$("#approvalButtonGroup").hide();
+			$("#handleTaskButton").show();
+		}else{
+			if (groupSolution.length > 0 && isTakenText  == 'Yes'){
+				$("#approvalButtonGroup").show();
+			}
+			$("#handleTaskButton").hide();
+		}
+		
+		if(isTakenText == 'No' ||  picChangeText == 'Yes'){
+			$("#handleTaskButton").hide();
+		}else
+			$("#handleTaskButton").show();
+
+		if (status  ==  'Closed'){
+			//$("#setDoneButton").prop("disabled", true);
+			$("#infraHeadButton").prop("disabled", true);
+			$("#handleTaskButton").hide();
+			$("#approvalButtonGroup").hide();
+			$("#GroupSolutionbutton").hide();
+		}
+		
+		if (finisStatus == 'Yes'){
+			//$("#approvalButtonGroup").hide();
+		}
+		
+		//set notification if Rollback / Revision is in progress
+		//alert("revision "+isrollbackText);
+		if (isrollbackText == 'Yes' ){
+			$("#notifRevision").show().html('<span id="notifRevision" style="color:orange;font-weight:bold;padding-left:25px"> Deployment revision is on process</span>');
+			$("#rollback").hide();
+			$('#tt').tabs('disableTab', 'Solution');				
+			$('#tt').tabs('disableTab', 'Deployment');				
+		}else{
+			$("#notifRevision").hide();
+		}
+		
+	    //set done
+	    $("#setDoneButton").click(function(){
+	    	var conf = confirm('Are you sure want to set done this task?');
+	    	if (conf == true){
+	    		setDone();
+	    	}
+		});
+		
+		//call close butten event click
+		$("#closeTicket").click(function(){
+	    	var conf = confirm('Do you want to close this issue ?');
+	    	if (conf == true){
+	    		setClose();
+	    	}
+		});
+		
+		//finish deployment list
+		$("#finishDeploymentList").click(function(){
+			var conf = confirm('Are you sure all deployement list are complete alreary?');
+			
+			if (conf  == true){
+				updateIsCompleteDeploylist(id);
+			}
+		});
+		
+		 //handle task
+		 $("#handleTaskButton").click(function(){
+	    	var conf = confirm('Are you sure handle this task ?');
+	    	if (conf == true){
+	    		//receiveTicket(logedInUser, id);
+	    		handleTask(logedInUser, id);
+	    	}
+	     });
+		
+		$("#handletask").click(function(){
+			handleTaskGroup(logedInUser, id, getManager());
+		});
+		
+		//alert(listDept);
+		//check if user as agroup assigned or as administrator display the buttom
+		if (listDept != assignToText && listAdmin != 1 && assignToText != logedInUser){
+			$("#approvalButtonGroup").hide();
+			$("#handleTaskButton").hide();
+			$("#handletask").hide();
+		}
+
+		if (status == 'Done'){
+			if(id == author || listAdmin == 1 || arrHelpdesk == 1){
+				$("#closeTicket").show();
+			}else{
+				$("#closeTicket").hide();
+			}
+		}else {
+			$("#closeTicket").hide();
+		}
+		
+		//close approvalButton if isApprovedGroupText = 1
+		
+		if (isApprovedGroupText == "Yes" && isrollbackText == "No"){
+			$("#approvalButtonGroup").hide();
+		}
+		
+		/*
+		if (groupSolution.length > 0){
+			$("#approvalButtonGroup").show();
+		}else {
+			$("#approvalButtonGroup").hide();
+		}
+		*/
+		// call function getTotalDeploymentCompleted that return count of completed deployment items
+		getTotalDeploymentCompleted(id);
+		
+		var totalDeployment = getTotalDeployment(id);
+		var totalDept = $("#totalDeploymentText").text();
+		var totalDeploymentCompleted = $("#totalDeploymentCompleted").val();
+		if (totalDeployment == 0) {
+				$("#finishDeploymentList").hide();
+		}
+		//disable the Solution tab is review not finish yet
+
+		if (totalDeployment == totalDeploymentCompleted && islistdepcomp == 'Yes'){
+			$('#tt').tabs('enableTab', 'Solution');				
+		}else{
+			$('#tt').tabs('disableTab', 'Solution');			
+		}
+
+		if(status == 'Rejected'){
+			//hide edit item button on the ribbon
+			var edit = document.getElementById("Ribbon.ListForm.Display.Manage.EditItem-Large");
+	        edit.style.display = "none";
+	        
+	        //disable Solution Tab, hide button functionality
+	        
+			$("#openTicket").hide();
+			$("#takeTicket").hide();
+			$('#tt').tabs('disableTab', 'Solution');
+			$("#trApproval").hide();
+		}
+		if(status == 'Closed' || status == 'Done' ){
+			//hide edit item button on the ribbon
+			var edit = document.getElementById("Ribbon.ListForm.Display.Manage.EditItem-Large");
+	        edit.style.display = "none";
+	        
+	        //disable Solution Tab, hide button functionality
+	        
+			$("#openTicket").hide();
+			$("#takeTicket").hide();
+			$('#tt').tabs('enableTab', 'Solution');		
+		}
+		
+		//populateWorkflowHistory(id);
+});
+function selectGroupByManager(manager){
+
+	//get senior manager from Managements List 
+    var CamlQuery = "<Query><Where><Eq><FieldRef Name='Person' /><Value Type='Text'>"+ manager +"</Value></Eq></Where></Query>";
+    var CamlViewFields = "<ViewFields><FieldRef Name='Group' /></ViewFields>";
+	var group; 
+
+  	$().SPServices({
+	    operation: "GetListItems",
+	    async: false,
+	    listName: "Group Manager",
+	    CAMLViewFields: CamlViewFields,
+	    CAMLQuery: CamlQuery,
+	      completefunc: function (xData, Status) {
+	      	 $(xData.responseXML).SPFilterNode("z:row").each(function(){
+				group  = $(this).attr("ows_Group");
+	      });
+    	}
+  	});
+  	return group;
+}
+
+function handleTaskGroup(logedIn, id, manager){
+	//dibikin ulang karena darurat
+	var logedInUserID = $().SPServices.SPGetCurrentUser({
+	    fieldName: "ID",
+	    debug: false
+	});
+	
+	//getgroup manager
+
+	var groupManager = selectGroupByManager("i:0#.w|"+getManager());
+
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    //edit 23 03 2016 jam 16:58, edit the isPICchange from 0 to 1
+		    //valuepairs: [["isPICchange", 0], ["Person_x0020_In_x0020_Charge", logedInUserID], ["PersonGroupHandle", logedInUserID], ["Handle_x0020_Date", dateISO()], ["isGroupTaskTaken", 1], ["Escalation_x0020_Status", "In Progress"], ["Manager", "-1;#"+manager]]
+		    valuepairs: [["isPICchange", 1], ["Person_x0020_In_x0020_Charge", logedInUserID], ["PersonGroupHandle", logedInUserID], ["Handle_x0020_Date", dateISO()], ["isGroupTaskTaken", 1], ["Escalation_x0020_Status", "In Progress"], ["ManagerGroup", groupManager], ["Manager", "-1;#"+manager]]
+	});
+	
+	$("#handleTaskButton").hide();
+	$("#handletask").prop("disabled", true);
+	$("#asigntootherbutton").show();
+	$("#PICText").text(logedIn)
+	location.reload();
+}
+
+function handleTask(logedIn, id){
+	//dibikin ulang karena darurat
+	var logedInUserID = $().SPServices.SPGetCurrentUser({
+	    fieldName: "ID",
+	    debug: false
+	});
+		//alert(logedIn);
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    valuepairs: [["isPICchange", 1], ["Person_x0020_In_x0020_Charge", logedInUserID], ["Handle_x0020_Date", dateISO()]]
+	});
+	
+	$("#handleTaskButton").hide();
+	$("#asigntootherbutton").show();
+	$("#PICText").text(logedIn)
+	location.reload();
+}
+
+
+function updateIsCompleteDeploylist(){
+	var id = getQueryString()["ID"];
+
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    valuepairs: [["isListDepComp", 1]]
+	});
+	
+	$("#finishDeploymentList").prop('disabled', true);
+	location.reload();
+	$('#tt').tabs('select', 'Deployment');
+}
+
+function getTotalDeploymentCompleted(id){
+	var CalmQuery = "<Query><Where><And><Eq><FieldRef Name='Status' /><Value Type='Text'>Completed</Value></Eq><Eq><FieldRef Name='IDCR' /><Value Type='Text'>"+id+"</Value></Eq></And></Where></Query>";
+	var jml = [];
+	$().SPServices({
+		   operation:"GetListItems",
+		   async: false, 
+		   CAMLRowLimit: 100,
+		   CAMLQuery : CalmQuery,
+		   CAMLViewFields: "<ViewFields><FieldRef Name='Author' /></ViewFields>",
+		   listName: "Deployments",
+		   completefunc: function (xData, Status) {
+	            //Navigate through the XML
+	            jml.push($(xData.responseXML).SPFilterNode("rs:data").attr("ItemCount"));
+		    }
+   	}); 
+   	
+	//set totalDeploymentCompleted hidden value with jml 
+	$("#totalDeploymentCompleted").val(jml);
+	
+	return jml;
+}
+
+function getTotalDeployment(id){
+	var CalmQuery = "<Query><Where><Eq><FieldRef Name='IDCR' /><Value Type='Text'>"+id+"</Value></Eq></Where></Query>";
+	var jml = [];
+	$().SPServices({
+		   operation:"GetListItems",
+		   async: false, 
+		   CAMLRowLimit: 100,
+		   CAMLQuery : CalmQuery,
+		   CAMLViewFields: "<ViewFields><FieldRef Name='Author' /></ViewFields>",
+		   listName: "Deployments",
+		   completefunc: function (xData, Status) {
+	            //Navigate through the XML
+	            jml.push($(xData.responseXML).SPFilterNode("rs:data").attr("ItemCount"));
+		    }
+   	}); 
+   	
+	//set totalDeploymentCompleted hidden value with jml 
+	$("#totalDeployment").val(jml);
+	
+	return jml;
+}
+
+
+
+function populateWorkflowHistory(id){
+	var idWorklowStatus = $("#approvallinkText").text();
+	var workflowID = idWorklowStatus.split('WorkflowInstanceID=')[1];
+	var replaceChar = workflowID.replace(/%2D/g, "-");
+
+	var id = getQueryString()["ID"];
+
+	//var CalmQuery = "<Query><Where><Eq><FieldRef Name='WorkflowInstanceID' /><Value Type='Text'>C192A068-931D-4753-9851-337080C7439B</Value></Eq></Where></Query>";
+	//var CalmQuery = "<Query><Where><Eq><FieldRef Name='WorkflowInstanceID' /><Value Type='Number'>C192A068-931D-4753-9851-337080C7439B</Value></Eq></Where></Query>";
+	var CalmQuery = "<Query><Where><Eq><FieldRef Name='WorkflowInstanceID' /><Value Type='Text'>{C192A068-931D-4753-9851-337080C7439B}</Value></Eq></Where></Query>";
+	
+	$().SPServices({
+		   operation:"GetListItems",
+		   async: false, 
+		   CAMLRowLimit: 100,
+		   CAMLQuery : CalmQuery,
+		   CAMLViewFields: "<ViewFields Properties='True' />",
+		   listName: "wfServiceRequest Tasks",
+		   completefunc: function (xData, Status) {
+		            var index = 0;
+		            $listApprovalTable = $("#listApprovalTable");
+		            //Navigate through the XML
+		            
+		            var i = 1;
+		            $(xData.responseXML).SPFilterNode("z:row").each(function(){
+					
+						
+		                //Get the values to a local variable
+		                var _title = $(this).attr("ows_Title");
+		                var _status = $(this).attr("ows_Status");
+		                var _Outcome= $(this).attr("ows_Status_x0020_Approval");
+		                var _startdate= confertDateToDDMMYYY($(this).attr("ows_StartDate"));
+		                var _duedate= confertDateToDDMMYYY($(this).attr("ows_Due_x0020_Date"));
+		                var _assignedto = $(this).attr("ows_AssignedTo").split(";#")[1];
+
+		                var $row = $("#templates").find(".row-template").clone();
+		
+						//alert(startDate);
+		                $row.find(".title").html(_title);
+		                $row.find(".assignedto").html(_assignedto);
+		                $row.find(".outcome").html("");
+		                $row.find(".startdate").html(_startdate);
+		                $row.find(".status").html(_status);
+		                $row.find(".duedate").html(_duedate);
+						
+		                //Change the style for even rows
+		                if (index % 2 == 0) {
+		                    $row.addClass("jtable-row-even")
+		                }
+		                
+		                index = index + 1;
+		                //add the row to table
+		                $listApprovalTable.append($row);
+		                i++;
+		            });
+		    }	   	
+   	});
+}
+	
+
+function setClose(){
+	var id = getQueryString()["ID"];
+	var thisUserID = $().SPServices.SPGetCurrentUser({
+	    fieldName: "Title",
+	    debug: false
+	});
+	
+	$('#tt').tabs('select', 'Deployment');
+	
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    valuepairs: [["Status", "Closed"], ["isClosed", 1], ["closeDate", dateISO()]]
+	});
+	
+	$("#setDoneButton").prop("disabled", true);
+	$("#status").text('Done');
+	location.reload();
+	alert("Task closed by "+thisUserID);
+}
+
+function setDone(){
+	var id = getQueryString()["ID"];
+	var thisUserID = $().SPServices.SPGetCurrentUser({
+	    fieldName: "ID",
+	    debug: false
+	});
+	
+	$('#tt').tabs('select', 'Deployment');
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    valuepairs: [["Status", "Done"], ["Person_x0020_In_x0020_Charge", thisUserID], ["isDone", 1],["Done_x0020_By", thisUserID], ["doneDate", dateISO()]]
+	});
+	
+	$("#setDoneButton").prop("disabled", true);
+	$("#status").text('Done');
+	location.reload();
+}
+
+
+function receiveTicket(){
+
+	var id = getQueryString()["ID"];
+
+	//dibikin ulang karena darurat
+		var logedInUserID = $().SPServices.SPGetCurrentUser({
+	    fieldName: "ID",
+	    debug: false
+	});
+
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Change Request",
+		    valuepairs: [["isReceived", 1], ["Received_x0020_By", logedInUserID], ["Person_x0020_In_x0020_Charge", logedInUserID], ["Assign_x0020_To", 101], ["Status", "In Progress"], ["Received_x0020_Date", dateISO()], ["isPICchange", 1]]
+	});
+	
+	$("#takeTicket").prop('disabled', true);
+	location.reload();
+	$('#tt').tabs('select', 'General');
+	
+}
+
+function getCRNumberById(id){
+	var CalmQuery = "<Query><Where><Eq><FieldRef Name='ID' /><Value Type='Text'>"+id+"</Value></Eq></Where></Query>";
+	var nomorCR  = new Array();
+	var author = [];
+	$().SPServices({
+		   operation:"GetListItems",
+		   async: false, 
+		   CAMLRowLimit: 100,
+		   CAMLQuery : CalmQuery,
+		   CAMLViewFields: "<ViewFields><FieldRef Name='Author' /></ViewFields>",
+		   listName: "Change Request",
+		   completefunc: function (xData, Status) {
+	            //Navigate through the XML
+	            $(xData.responseXML).SPFilterNode("z:row").each(function(){
+	                var _ID = $(this).attr("ows_ID");
+	                var authorText = $(this).attr("ows_Author").split(";#")[1];
+	                author.push(authorText);
+	            });
+		    }	   	
+   	}); 
+	return author;
+}
+
+function viewDeployment(){
+	$("#popUP").attr();
+	var crno = $("#ChangeRequestNo").text();
+	var id = getQueryString()["ID"];
+	var CalmQuery = "<Query><Where><Eq><FieldRef Name='Change_x0020_Request_x0020_No' /><Value Type='Text'>"+crno+"</Value></Eq></Where></Query>";
+	$().SPServices({
+		   operation:"GetListItems",
+		   async: true, 
+		   CAMLRowLimit: 100,
+		   CAMLQuery : CalmQuery,
+		   CAMLViewFields: "<ViewFields Properties='True' />",
+		   listName: "Deployments", 
+		   completefunc: fnCallBack
+	}); 
+}
+
+function fnCallBack(xData, Status) {
+
+			//get ID login
+				var loginInfo = $().SPServices.SPGetCurrentUser({
+			    fieldNames: ["ID", "Title"],
+			    debug: false
+			});
+			var total = [];
+            var index = 0;
+            $documentListtable = $("#documentListtable");
+            
+            //Navigate through the XML
+            tanggaHariIni = new Date();
+            var i = 1;
+
+/*            var totalrow = $(xData.responseXML).SPFilterNode("rs:data").attr("ItemCount");
+	        $("#totalDeployment").val(totalrow);
+	        $("#totalDeploymentText").text(totalrow);
+	        
+	        if (totalrow == 0 ){
+	          	$("#finishDeploymentList").prop('disabled', true);
+	        }
+*/            $(xData.responseXML).find("z\\:row, row").each(function () {
+
+                var _ID = $(this).attr("ows_ID");
+								
+				//set editLink
+				$("#editLink").attr("onClick", "openBasicDialog('/sites/it/Lists/Deployments/EditForm.aspx?ID="+_ID+"','Edit Deployment')");
+				$("#deleteItem").attr("onClick", "javascript:deleteItem("+_ID+")");
+
+                //Get the values to a local variable
+                var _title = $(this).attr("ows_Title");
+                var _implementor = $(this).attr("ows_Implementor").split(";#")[1];
+                var _category = $(this).attr("ows_Category").split(";#")[1];
+                var _clasification = $(this).attr("ows_Clasification").split(";#")[1];
+                var _startdate = $(this).attr("ows_Start_x0020_Date");
+                var _enddate = $(this).attr("ows_End_x0020_Date");
+                var _id = $(this).attr("ows_ID");
+                var _idCR = $(this).attr("ows_IDCR");
+                var _status = $(this).attr("ows_Status");
+                var $row = $("#templates").find(".row-template").clone();
+
+				//$(this).attr("ows_Start_x0020_Date") != '' ? startDate = confertDateToDDMMYYY(_startdate) : startDate = ''; 
+				//$(this).attr("ows_End_x0020_Date")  != '' ? endDate = confertDateToDDMMYYY(_enddate) : endDate = ''; 
+				startDate = confertDateToDDMMYYY(_startdate); 
+				endDate = confertDateToDDMMYYY(_enddate); 
+
+				var	isreviewfinished = $("#isreviewfinished").text(); //get the review finished
+				
+				var htmlHandleDeployment = "";
+				var htmlFinishButton = "<input type='button' value='Set Complete' class='finishDeploymentButton' id='finish_"+_id+"' onClick='javascript:finishDeployment("+_id+")'>";
+				var htmlHandleButton = "<input type='button' value='Handle' class='handleDeploymentButton' name='"+_id+"' id='"+_id+"' onClick='javascript:handleDeployment("+_id+","+_idCR+","+loginInfo["ID"]+")'>";
+				
+				if (isreviewfinished == 'Yes'){
+					if (_status == "In Progress"){
+						htmlHandleDeployment = htmlFinishButton;
+					}else if (_status == "Not Started"){
+						htmlHandleDeployment = htmlHandleButton;
+					}else {
+						htmlHandleDeployment = "";
+					}
+				}
+				
+                $row.find(".title").html(_title);
+                $row.find(".category").html(_category);
+                $row.find(".implementor").html(_implementor);
+                $row.find(".clasification ").html(_clasification);
+                $row.find(".startdate").html(startDate);
+                $row.find(".enddate").html(endDate);
+                $row.find(".status").html(_status);
+                
+				if (loginInfo["Title"] == _implementor){
+					$row.find(".task").html(htmlHandleDeployment);
+				}else{
+					$row.find(".task").html("");
+				}
+                
+                $row.find(".nomor").html(index+1);
+				
+                //Change the style for even rows
+                if (index % 2 == 0) { 
+                    $row.addClass("jtable-row-even")
+                } 
+                
+                index = index + 1;
+                //add the row to table
+                $documentListtable.append($row);
+                i++;
+            });
+}
+
+function handleDeployment(id, idCR, logedInID){
+	updateChangeRequestItem(idCR, logedInID);
+	updateDeploymentItem(id);
+}
+
+function updateChangeRequestItem(idCR, IDuser){
+
+	$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: idCR,
+		    listName: "Change Request",
+		    valuepairs: [["isPICchange", 1], ["Person_x0020_In_x0020_Charge", IDuser], ["Handle_x0020_Date", dateISO()]],
+   		    debug: true
+	});
+}
+
+function updateDeploymentItem(id){
+		$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Deployments",
+		    valuepairs: [["Status", "In Progress"]],
+		    debug: true
+	});
+	
+	alert("Deployment item status is In Progress");
+	location.reload();
+	
+}
+
+function finishDeployment(id){
+		$().SPServices({
+			operation: "UpdateListItems",
+		    async: false,
+		    batchCmd: "Update",
+		    ID: id,
+		    listName: "Deployments",
+		    valuepairs: [["Status", "Completed"]],
+		    debug: true
+	});
+	
+	alert("Deployment item status is Completed");
+	location.reload();
+
+}
+
+function deleteItem(id){
+	var conf = confirm("Are you sure want to delete this deploy item? ");
+	if (conf == true){
+	    $().SPServices.SPUpdateMultipleListItems({
+	        async: true,
+	        listName: "Deployments",
+	        batchCmd: "Delete",
+	        CAMLQuery: "<Query><Where><Eq><FieldRef Name='ID'/><Value Type='Counter'>"+id+"</Value></Eq></Where></Query>",
+	        completefunc: function (xData, Status) {
+				$("#"+id+"").hide();
+	        } //completefunc
+	    });
+	}else{
+		return false;
+	}
+}
+</script>
